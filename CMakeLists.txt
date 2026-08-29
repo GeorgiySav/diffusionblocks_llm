@@ -35,5 +35,21 @@ set(NN_BUILD_BENCH OFF CACHE BOOL "" FORCE)
 
 add_subdirectory("${NN_LIBRARY_DIR}" "${CMAKE_BINARY_DIR}/nn-library")
 
-add_executable(llm src/main.cpp)
-target_link_libraries(llm PRIVATE nn)
+# Support sources live in subdirectories of src/ (e.g. src/tokenizer/) and
+# have no main() of their own -- every executable below links all of them.
+# Entry points are the top-level .cpp files directly under src/, each with
+# its own main(); one executable is created per entry point, named after the
+# file. CONFIGURE_DEPENDS makes both globs re-run at build time so new files
+# are picked up without re-running cmake by hand.
+file(GLOB_RECURSE LLM_SUPPORT_SOURCES CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*/*.cpp"
+)
+file(GLOB LLM_ENTRY_SOURCES CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+)
+
+foreach(entry_source ${LLM_ENTRY_SOURCES})
+  get_filename_component(entry_name ${entry_source} NAME_WE)
+  add_executable(${entry_name} ${entry_source} ${LLM_SUPPORT_SOURCES})
+  target_link_libraries(${entry_name} PRIVATE nn)
+endforeach()
