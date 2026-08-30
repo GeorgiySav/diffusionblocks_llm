@@ -3,13 +3,12 @@
 #include <nn/module.h>
 
 #include "attention.h"
-#include "RoPE.h"
 #include "mlp.h"
 
 class Block : public nn::Module {
 public:
-  Block(int n_heads, int n_embed, int mlp_hidden_dim, float dropout, nn::Pcg32& rng)
-    : attention_(n_heads, n_embed, dropout, rng),
+  Block(int n_heads, int n_embed, int max_seq_len, int mlp_hidden_dim, float dropout, nn::Pcg32& rng)
+    : attention_(n_heads, n_embed, max_seq_len, dropout, rng),
       mlp_(n_embed, mlp_hidden_dim, n_embed, dropout, rng),
       norm1_(n_embed),
       norm2_(n_embed) {}
@@ -26,6 +25,12 @@ public:
     mlp_.collect_named(prefix + "mlp", out);
     norm1_.collect_named(prefix + "norm1", out);
     norm2_.collect_named(prefix + "norm2", out);
+  }
+
+  void set_training(bool on) override {
+    training_ = on;
+    attention_.set_training(on);
+    mlp_.set_training(on);
   }
 
 private:

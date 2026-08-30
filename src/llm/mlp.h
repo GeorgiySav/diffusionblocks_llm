@@ -2,12 +2,14 @@
 
 #include <nn/module.h>
 
+#include "SwiGLU.h"
+
 class MLP : public nn::Module {
 public:
   MLP(int input_dim, int hidden_dim, int output_dim, float dropout, nn::Pcg32& rng)
     : layers_(nn::Sequential(
         nn::Linear(input_dim, hidden_dim, rng),
-        nn::ReLu(),
+        SwiGLU(hidden_dim, rng),
         nn::Linear(hidden_dim, output_dim, rng),
         nn::Dropout(dropout)
       )) {}
@@ -18,6 +20,11 @@ public:
 
   void collect_named(const std::string& prefix, std::vector<nn::NamedTensor>& out) override {
     layers_.collect_named(prefix + "layers", out);
+  }
+
+  void set_training(bool on) override {
+    training_ = on;
+    layers_.set_training(on);
   }
 private:
   nn::Sequential layers_;

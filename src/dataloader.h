@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 #include <nn/data/dataloader.h>
@@ -12,6 +13,17 @@ namespace llm::data {
 // Produced by scripts/tokenize_tiny_stories.py (run once before training).
 inline constexpr const char* kTinyStoriesTrainTokens = "data/TinyStories/train.bin";
 inline constexpr const char* kTinyStoriesValidTokens = "data/TinyStories/valid.bin";
+
+inline constexpr int kCl100kVocabSize = 100277;
+inline constexpr int kGPT2VocabSize = 50257;
+
+inline std::string encoding_for_vocab_size(int vocab_size) {
+  if (vocab_size == kCl100kVocabSize) return "cl100k_base";
+  if (vocab_size == kGPT2VocabSize) return "gpt2";
+  throw std::invalid_argument(
+      "encoding_for_vocab_size: no known tiktoken encoding for vocab_size " +
+      std::to_string(vocab_size));
+}
 
 // A TokenDataset backed by a memory-mapped, pre-tokenized .bin file (see
 // scripts/tokenize_tiny_stories.py). MappedTokens is listed before

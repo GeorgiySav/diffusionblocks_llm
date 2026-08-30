@@ -45,7 +45,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", help="Path to a single TinyStories .txt file")
     parser.add_argument("--output", help="Path to write the tokenized .bin file (required with --input)")
-    parser.add_argument("--encoding", default="cl100k_base", help="tiktoken encoding name")
+    parser.add_argument("--encoding", default="gpt2", help="tiktoken encoding name")
     args = parser.parse_args()
 
     if args.input:
