@@ -12,8 +12,10 @@
 
 namespace llm {
 
-// Encodes/decodes text through tiktoken by shelling out to
-// scripts/tiktoken_cli.py
+// Encodes/decodes text by shelling out to scripts/tokenizer_cli.py.
+// `encoding` is either a tiktoken encoding name (e.g. "gpt2") or a path to a
+// custom tokenizer.json trained by scripts/train_tokenizer.py -- the CLI
+// tells them apart by whether the string names an existing file.
 class Tokenizer {
  public:
   explicit Tokenizer(std::string encoding, std::string python = "py")
@@ -59,9 +61,9 @@ class Tokenizer {
   }
 
   std::string run_cli(const std::string& mode, const std::filesystem::path& in_path) const {
-    const std::string cmd = python_ + " scripts/tiktoken_cli.py " + mode +
+    const std::string cmd = python_ + " scripts/tokenizer_cli.py " + mode +
                              " --input \"" + in_path.string() + "\"" +
-                             " --encoding " + encoding_ + " 2>&1";
+                             " --encoding \"" + encoding_ + "\" 2>&1";
 
 #ifdef _WIN32
     FILE* pipe = _popen(cmd.c_str(), "rb");

@@ -52,4 +52,25 @@ foreach(entry_source ${LLM_ENTRY_SOURCES})
   get_filename_component(entry_name ${entry_source} NAME_WE)
   add_executable(${entry_name} ${entry_source} ${LLM_SUPPORT_SOURCES})
   target_link_libraries(${entry_name} PRIVATE nn)
+  # A quoted #include only reliably reaches its own directory on standard
+  # (non-MSVC) toolchains; without src/ on the path, a subdirectory header
+  # (e.g. src/llm/trainer.h) that reaches for a sibling of src/ (e.g.
+  # src/train_config.h) would resolve only via clang-cl/MSVC's own extra,
+  # non-portable "search every ancestor directory" behaviour.
+  target_include_directories(${entry_name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 endforeach()
+
+# Tests get their own executable, built the same way nn-library's own
+# test_all is: one binary over every tests/*.cpp, reusing nn's header-only
+# NN_TEST/NN_CHECK harness (private to nn-library, not installed, so it's
+# reached via NN_LIBRARY_DIR rather than the public include/ path).
+enable_testing()
+file(GLOB TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
+if(TEST_SOURCES)
+  add_executable(llm_tests ${TEST_SOURCES})
+  target_link_libraries(llm_tests PRIVATE nn)
+  target_include_directories(llm_tests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${NN_LIBRARY_DIR}/tests")
+  add_test(NAME unit COMMAND llm_tests)
+endif()

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <nn/autograd/functions.h>
 #include <nn/module.h>
 
 class SwiGLU : public nn::Module {
@@ -10,7 +11,7 @@ public:
 
   nn::Tensor forward(const nn::Tensor& x) {
     nn::Tensor x1 = linear1_.forward(x);
-    nn::Tensor swish = x1 * x1.sigmoid();
+    nn::Tensor swish = nn::autograd::silu(x1);
     nn::Tensor swiglu = swish * linear2_.forward(x);
 
     return swiglu;

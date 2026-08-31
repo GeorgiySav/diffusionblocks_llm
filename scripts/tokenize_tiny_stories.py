@@ -8,15 +8,22 @@ Requires: pip install -r scripts/requirements.txt
 
 Usage:
     py scripts/tokenize_tiny_stories.py
-        Tokenizes the default train/valid files under data/TinyStories/.
+        Tokenizes the default train/valid files under data/TinyStories/
+        using tiktoken's "gpt2" encoding.
 
     py scripts/tokenize_tiny_stories.py --input path/to/in.txt --output path/to/out.bin
         Tokenizes a single file.
+
+    py scripts/tokenize_tiny_stories.py --encoding data/TinyStories/tokenizer-8192.json
+        Tokenizes with a custom tokenizer trained by train_tokenizer.py
+        instead of a tiktoken encoding -- --encoding accepts either a
+        tiktoken encoding name or a path to a trained tokenizer.json.
 """
 import argparse
 
 import numpy as np
-import tiktoken
+
+from tokenizer_backend import load_backend
 
 DEFAULT_FILES = [
     ("data/TinyStories/TinyStories-train.txt", "data/TinyStories/train.bin"),
@@ -25,14 +32,11 @@ DEFAULT_FILES = [
 
 
 def tokenize_file(input_path: str, output_path: str, encoding_name: str) -> None:
-    enc = tiktoken.get_encoding(encoding_name)
+    backend = load_backend(encoding_name)
     with open(input_path, "r", encoding="utf-8") as f:
         text = f.read()
 
-    # The dataset already uses "<|endoftext|>" as a story separator; letting
-    # tiktoken recognize it as a special token keeps story boundaries in the
-    # token stream instead of splitting it into ordinary BPE pieces.
-    ids = enc.encode(text, allowed_special={"<|endoftext|>"})
+    ids = backend.encode(text)
 
     tokens = np.array(ids, dtype=np.int32)
     tokens.tofile(output_path)

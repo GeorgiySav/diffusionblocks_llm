@@ -18,15 +18,37 @@ the nn library's own `nn::data::MappedTokens` + `nn::data::TokenDataset` +
 
    This reads `data/TinyStories/TinyStories-{train,valid}.txt` and writes
    `data/TinyStories/{train,valid}.bin` -- flat little-endian `int32` token
-   id arrays, encoded with tiktoken's `cl100k_base` encoding (the `<|endoftext|>`
-   story separator already in the `.txt` files is preserved as its special
-   token, id 100257).
+   id arrays, encoded with tiktoken's `gpt2` encoding by default (the
+   `<|endoftext|>` story separator already in the `.txt` files is preserved
+   as its special token, id 50256). `TrainConfig::vocab_size` in
+   `src/train_config.h` must match whatever encoding you tokenize with --
+   see `llm::data::encoding_for_vocab_size` in `src/dataloader.h`.
 
    To tokenize a single file, or with a different encoding:
 
    ```bash
    py scripts/tokenize_tiny_stories.py --input path/to/in.txt --output path/to/out.bin --encoding p50k_base
    ```
+
+   **Custom, smaller vocabulary**: tiktoken's built-in encodings all sit
+   around 50k-100k tokens, most of which TinyStories' simple, repetitive
+   vocabulary never touches. `scripts/train_tokenizer.py` trains a small
+   byte-level BPE tokenizer directly on the corpus instead:
+
+   ```bash
+   py scripts/train_tokenizer.py --vocab-size 8192
+   py scripts/tokenize_tiny_stories.py --encoding data/TinyStories/tokenizer-8192.json
+   ```
+
+   `--encoding` (here and everywhere else it appears -- `tokenizer_cli.py`,
+   `generate`'s encoding argument) accepts either a tiktoken encoding name
+   or a path to a tokenizer.json produced this way; the tools tell them apart
+   by whether the string names an existing file. Set
+   `TrainConfig::vocab_size` in `src/train_config.h` to the actual vocab size
+   `train_tokenizer.py` prints (it can come in slightly below the requested
+   `--vocab-size` on a small corpus), and pass the same tokenizer.json path
+   as `generate`'s encoding argument at generation time -- there's no
+   metadata on the checkpoint recording which tokenizer trained it.
 
 2. **Load in C++** (`src/dataloader.h`):
 

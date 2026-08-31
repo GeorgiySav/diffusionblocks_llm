@@ -33,7 +33,15 @@ public:
       throw std::invalid_argument("Input sequence length exceeds maximum sequence length");
     }
 
-    nn::Tensor x = token_embedding_.forward(idx); // [B, T, n_embed]
+    // Matches DiffusionRecurrentLLM/DiffusionBlockedGPT's embedding handling
+    // (prevents embedding collapse) -- everything else in a Block is already
+    // the same building blocks (RMSNorm, CausalAttention, SwiGLU MLP,
+    // tied+untied-at-init head) those models use, so this is the one real
+    // architectural gap between "plain GPT" and the diffusion models' shared
+    // scaffolding. Kept even though GPT has no noise to be robust to,
+    // because the point of these comparisons is to isolate the training
+    // *scheme* as the difference, not incidental embedding-scale effects.
+    nn::Tensor x = l2_normalize(token_embedding_.forward(idx)); // [B, T, n_embed]
 
     for (Block& block : blocks_) {
       x = block.forward(x); // [B, T, n_embed]
@@ -79,6 +87,12 @@ public:
   }
 
 private:
+  static nn::Tensor l2_normalize(const nn::Tensor& x, float eps = 1e-6f) {
+    const int last = x.rank() - 1;
+    nn::Tensor norm = x.pow(2.0f).sum(last, /*keepdim=*/true).sqrt();
+    return x / (norm + eps);
+  }
+
   nn::Embedding token_embedding_;
   std::vector<Block> blocks_;
   nn::RMSNorm ln_f_;

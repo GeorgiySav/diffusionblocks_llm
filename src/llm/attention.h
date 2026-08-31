@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <nn/autograd/functions.h>
 #include <nn/module.h>
 
@@ -21,43 +23,36 @@ public:
   };
 
   nn::Tensor forward(const nn::Tensor& x) override {
+    return forward(x, nn::tril_mask(x.extent(1), x.device()), /*rope_period=*/0);
+  }
+
+  nn::Tensor forward(const nn::Tensor& x, const nn::Tensor& keep_mask, int rope_period = 0) {
     const int B = x.extent(0); // batch
-    const int T = x.extent(1); // time
+    const int L = x.extent(1); // time (T, or 2T under the concatenation trick)
     const int C = x.extent(2); // channels
 
     const int H = n_heads_; // heads
     const int D = n_embed_ / n_heads_; // head dimension
 
-    // split into Q, K, V
-    nn::Tensor qkv = c_attn_.forward(x); // [B, T, 3 * C]
-    nn::Tensor q = qkv.slice_view(2, 0, C); // [B, T, C]
-    nn::Tensor k = qkv.slice_view(2, C, C); // [B, T, C]
-    nn::Tensor v = qkv.slice_view(2, 2 * C, C); // [B, T, C]
+    nn::Tensor qkv = c_attn_.forward(x); // [B, L, 3 * C]
+    nn::Tensor q = qkv.slice(2, 0, C); // [B, L, C]
+    nn::Tensor k = qkv.slice(2, C, C); // [B, L, C]
+    nn::Tensor v = qkv.slice(2, 2 * C, C); // [B, L, C]
 
     // Reshape for multi-head attention
-    q = q.reshape_view({B, T, H, D}).transpose_view(1, 2).contiguous(); // [B, H, T, D]
-    k = k.reshape_view({B, T, H, D}).transpose_view(1, 2).contiguous(); // [B, H, T, D]
-    v = v.reshape_view({B, T, H, D}).transpose_view(1, 2).contiguous(); // [B, H, T, D]
+    q = q.reshape({B, L, H, D}).transpose(1, 2).contiguous(); // [B, H, L, D]
+    k = k.reshape({B, L, H, D}).transpose(1, 2).contiguous(); // [B, H, L, D]
+    v = v.reshape({B, L, H, D}).transpose(1, 2).contiguous(); // [B, H, L, D]
 
     // Rotary position embeddings on Q and K only (never V).
-    q = rope_.apply(q); // [B, H, T, D]
-    k = rope_.apply(k); // [B, H, T, D]
+    q = apply_rope(q, rope_period); // [B, H, L, D]
+    k = apply_rope(k, rope_period); // [B, H, L, D]
 
-    // Scaled dot-product attention
-    nn::Tensor attn_scores =
-        q.mm(k.transpose_view(2, 3).contiguous()) / std::sqrt(static_cast<float>(D)); // [B, H, T, T]
+    nn::Tensor out = nn::autograd::scaled_dot_product_attention(q, k, v, keep_mask, dropout_,
+                                                                 /*is_causal=*/false, training()); // [B, H, L, D]
 
-    // Causal mask: position i may only attend to j <= i. tril_mask(T) is 1
-    // where j <= i (keep) and 0 where j > i (future); masked_fill wants the
-    // opposite convention (1 == replace), hence the "1 - ...".
-    nn::Tensor future_mask = 1.0f - nn::tril_mask(T, x.device()); // [T, T]
-    attn_scores = nn::masked_fill(attn_scores, future_mask, -1e9f);
-
-    nn::Tensor attn = attn_scores.softmax(); // [B, H, T, T]
-    nn::Tensor out = attn.mm(v); // [B, H, T, D]
-
-    // Reshape back to [B, T, C]
-    out = out.transpose_view(1, 2).reshape_view({B, T, C}); // [B, T, C]
+    // Reshape back to [B, L, C]
+    out = out.transpose(1, 2).reshape({B, L, C}); // [B, L, C]
     return c_proj_.forward(out);
   }
 
@@ -66,6 +61,22 @@ public:
     c_proj_.collect_named(prefix + "c_proj", out);
   }
 private:
+  // x: [B, H, L, D]. Applies rope_ (which only knows positions 0..period-1)
+  // independently to each period-length chunk along the sequence axis, so
+  // position ids wrap back to 0 at each chunk boundary.
+  nn::Tensor apply_rope(const nn::Tensor& x, int rope_period) const {
+    const int L = x.extent(2);
+    if (rope_period <= 0 || rope_period >= L) {
+      return rope_.apply(x);
+    }
+
+    std::vector<nn::Tensor> chunks;
+    for (int start = 0; start < L; start += rope_period) {
+      chunks.push_back(rope_.apply(x.slice(2, start, rope_period)));
+    }
+    return nn::cat(chunks, 2);
+  }
+
   int   n_heads_;
   int   n_embed_;
   float dropout_;

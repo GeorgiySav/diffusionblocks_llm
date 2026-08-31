@@ -1,7 +1,9 @@
 build/
-build-*/
+build*/
 .cache/
 compile_commands.json
 .vscode
 data/TinyStories/*
+data/TinyShakespeare/*
 *.ckpt
+__pycache__
