@@ -7,3 +7,4 @@ data/TinyStories/*
 data/TinyShakespeare/*
 *.ckpt
 __pycache__
+checkpoints
