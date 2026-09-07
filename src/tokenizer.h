@@ -13,9 +13,6 @@
 namespace llm {
 
 // Encodes/decodes text by shelling out to scripts/tokenizer_cli.py.
-// `encoding` is either a tiktoken encoding name (e.g. "gpt2") or a path to a
-// custom tokenizer.json trained by scripts/train_tokenizer.py -- the CLI
-// tells them apart by whether the string names an existing file.
 class Tokenizer {
  public:
   explicit Tokenizer(std::string encoding, std::string python = "py")

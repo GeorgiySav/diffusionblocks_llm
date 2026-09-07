@@ -1,8 +1,5 @@
 """Shared encode/decode dispatch for tokenize_tiny_stories.py and
-tokenizer_cli.py: a tokenizer "spec" string is either a tiktoken encoding
-name (e.g. "gpt2") or a path to a custom BPE tokenizer.json trained by
-train_tokenizer.py -- distinguished by whether it names an existing file.
-"""
+tokenizer_cli.py."""
 import os
 from typing import List
 
@@ -23,9 +20,7 @@ class TiktokenBackend(TokenizerBackend):
         self._enc = tiktoken.get_encoding(encoding_name)
 
     def encode(self, text: str) -> List[int]:
-        # The dataset uses "<|endoftext|>" as a story separator; letting
-        # tiktoken recognize it as a special token keeps story boundaries in
-        # the token stream instead of splitting it into ordinary BPE pieces.
+        # The dataset uses "<|endoftext|>" as a story separator
         return self._enc.encode(text, allowed_special={_ENDOFTEXT})
 
     def decode(self, ids: List[int]) -> str:
@@ -33,18 +28,6 @@ class TiktokenBackend(TokenizerBackend):
 
 
 class CustomBpeBackend(TokenizerBackend):
-    # Tokenizer.encode()/encode_batch() materializes a full Encoding (ids,
-    # character offsets, word ids, attention mask, special-tokens mask --
-    # several parallel arrays per token) for every input given to one call.
-    # Passing TinyStories' ~2GB training file as a single string holds all
-    # of that per-token metadata for the *entire* corpus in memory at once:
-    # a large multiplier over the ~4 bytes/token actually wanted, easily
-    # enough to abort the process with a Rust allocation failure (tiktoken
-    # never has this problem -- it just returns a plain list of ints).
-    # "<|endoftext|>" is a registered special token, so it never merges
-    # into a BPE piece with its neighbors: splitting the text on it and
-    # encoding stories in bounded batches gives an identical token stream
-    # to one giant encode() call, at a small fraction of the peak memory.
     _BATCH_CHARS = 8_000_000
 
     def __init__(self, tokenizer_path: str):
@@ -64,8 +47,6 @@ class CustomBpeBackend(TokenizerBackend):
         def flush(start_index: int, items: List[str]) -> None:
             for offset, enc in enumerate(self._tok.encode_batch(items)):
                 ids.extend(enc.ids)
-                # Every story had a "<|endoftext|>" after it except the
-                # very last one in the whole corpus (str.split's semantics).
                 if start_index + offset < n - 1:
                     ids.append(self._endoftext_id)
 

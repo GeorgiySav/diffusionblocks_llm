@@ -5,24 +5,20 @@
 
 class SwiGLU : public nn::Module {
 public:
-  SwiGLU(int dim, nn::Pcg32& rng)
-    : linear1_(dim, dim, rng),
-      linear2_(dim, dim, rng) {}
+  SwiGLU(int in_features, int out_features, nn::Pcg32& rng, bool bias = true)
+    : gate_(in_features, out_features, rng, bias),
+      up_(in_features, out_features, rng, bias) {}
 
-  nn::Tensor forward(const nn::Tensor& x) {
-    nn::Tensor x1 = linear1_.forward(x);
-    nn::Tensor swish = nn::autograd::silu(x1);
-    nn::Tensor swiglu = swish * linear2_.forward(x);
-
-    return swiglu;
+  nn::Tensor forward(const nn::Tensor& x) override {
+    return nn::autograd::silu(gate_.forward(x)) * up_.forward(x);
   }
 
   void collect_named(const std::string& prefix, std::vector<nn::NamedTensor>& out) override {
-    linear1_.collect_named(prefix + "linear1.", out);
-    linear2_.collect_named(prefix + "linear2.", out);
+    gate_.collect_named(prefix + "gate.", out);
+    up_.collect_named(prefix + "up.", out);
   }
 
 private:
-  nn::Linear linear1_;
-  nn::Linear linear2_;
+  nn::Linear gate_;
+  nn::Linear up_;
 };

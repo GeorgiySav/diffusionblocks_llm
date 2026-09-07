@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""Thin tokenizer CLI used by the C++ tokenizer (src/tokenizer.h).
-
---encoding accepts either a tiktoken encoding name (e.g. "gpt2") or a path
-to a custom tokenizer.json trained by scripts/train_tokenizer.py.
-
-Modes:
-    encode --input <text-file> --encoding <name-or-path>
-        Reads UTF-8 text from <text-file>, writes one token id per line.
-
-    decode --input <ids-file> --encoding <name-or-path>
-        Reads one token id per line from <ids-file>, writes the decoded
-        UTF-8 text.
-"""
+"""Thin tokenizer CLI used by the C++ tokenizer"""
 import argparse
 import sys
 

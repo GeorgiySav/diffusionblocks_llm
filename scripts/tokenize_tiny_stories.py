@@ -1,24 +1,5 @@
 #!/usr/bin/env python3
-"""Tokenizes TinyStories .txt files into flat int32 binary files.
-
-The output format is a raw array of little-endian int32 token ids, matching
-what nn::data::load_tokens / nn::data::MappedTokens expect on the C++ side.
-
-Requires: pip install -r scripts/requirements.txt
-
-Usage:
-    py scripts/tokenize_tiny_stories.py
-        Tokenizes the default train/valid files under data/TinyStories/
-        using tiktoken's "gpt2" encoding.
-
-    py scripts/tokenize_tiny_stories.py --input path/to/in.txt --output path/to/out.bin
-        Tokenizes a single file.
-
-    py scripts/tokenize_tiny_stories.py --encoding data/TinyStories/tokenizer-8192.json
-        Tokenizes with a custom tokenizer trained by train_tokenizer.py
-        instead of a tiktoken encoding -- --encoding accepts either a
-        tiktoken encoding name or a path to a trained tokenizer.json.
-"""
+"""Tokenizes TinyStories .txt files into flat int32 binary files."""
 import argparse
 
 import numpy as np

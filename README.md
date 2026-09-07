@@ -1,28 +1,10 @@
 # LLM
 
-Two autoregressive language models trained on TinyStories, sharing one
-training/generation harness:
+A Llama-style decoder-only language model trained on TinyStories, in C++:
+RMSNorm pre-norm blocks, RoPE, SwiGLU MLPs, grouped-query attention, no biases.
 
-- **GPT**: a plain decoder-only transformer (`src/llm/gpt.h`).
-- **DiffusionRecurrentLLM**: a recurrent-depth model trained via the
-  DiffusionBlocks recipe (`src/llm/diffusion_llm.h`) -- depth recurrence is
-  mapped onto a reverse diffusion ODE and trained in a single forward pass
-  per step at one sampled noise level, following Karras et al.'s EDM
-  preconditioning and DiT's AdaLN-Zero conditioning.
-
-Built on top of [nn library](../nn%20library), consumed as a sibling checkout
-rather than a submodule: `CMakeLists.txt` points at `../nn library` via
-`NN_LIBRARY_DIR` and pulls it in with `add_subdirectory`. Because it's a plain,
-separate git repo and not nested inside this one, changes to the library are
-just `cd "../nn library" && git commit` as usual -- nothing here needs to be
-updated or re-pinned.
-
-If the checkout lives somewhere else (a different machine, CI), point at it
-explicitly:
-
-```bash
-cmake -S . -B build -DNN_LIBRARY_DIR=/path/to/nn-library
-```
+Built on [nn library](../nn%20library), a sibling checkout. Override its path
+with `-DNN_LIBRARY_DIR=/path/to/nn-library`.
 
 ## Build
 
@@ -31,38 +13,60 @@ cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Rel
 cmake --build build
 ```
 
-This produces `train`, `generate`, and `llm_tests` (see `CMakeLists.txt` --
-every top-level `src/*.cpp` file becomes its own executable, named after the
-file). `-DNN_WITH_CUDA=OFF` forces a CPU-only build if no CUDA toolchain is
-available; **always build in a Release-family config** (`Release`,
-`RelWithDebInfo`) for real training runs -- a Debug build synchronizes the
-GPU after every single kernel launch for error-checking, which is
-dramatically slower.
+Clang is required -- the nn library does not compile under MSVC.
 
-## Data
+## 0. Get the corpus
 
-See [DATALOADER.md](DATALOADER.md) for tokenizing TinyStories into the
-`.bin` files training reads.
-
-## Train / generate
-
-Both binaries take the model kind (`gpt` or `diffusion`) as their first
-argument; hyperparameters live in `src/train_config.h`.
+Download [TinyStories](https://huggingface.co/datasets/roneneldan/TinyStories)
+to `data/TinyStories/TinyStories-{train,valid}.txt`, then:
 
 ```bash
-./build/train diffusion
-./build/generate diffusion "Once upon a time"
+pip install -r scripts/requirements.txt
 ```
 
-GPT and DiffusionRecurrentLLM checkpoints aren't interchangeable -- point
-`TrainConfig::checkpoint_path` at a different file (or clear it) when
-switching `model`, and keep `generate`'s `train_config.h` in sync with
-whatever it was trained with (there's no checkpoint metadata recording
-architecture hyperparameters like `n_embed` or `sigma_data`).
+## 1. Train the tokenizer
+
+```bash
+py scripts/train_tokenizer.py --vocab-size 4096
+```
+
+Set `LlamaTrainConfig::vocab_size` in `src/llama_config.h` to the size it
+prints -- it can land below what you asked for.
+
+## 2. Tokenize
+
+```bash
+py scripts/tokenize_tiny_stories.py --encoding data/TinyStories/tokenizer-4096.json
+```
+
+Writes `data/TinyStories/{train,valid}.bin`.
+
+## 3. Train
+
+```bash
+./build/train_llama
+```
+
+Runs to `max_steps`, which also sizes the LR schedule. The default 18700 steps
+is ~9 hours on one GPU and gives a 62M model.
+
+Checkpoints go to `checkpoints/llama.ckpt` every 400 steps, and to
+`.ckpt.best` whenever validation improves. Restarting resumes from the rolling
+checkpoint; delete it to start over.
+
+## 4. Generate
+
+```bash
+./build/generate_llama "Once upon a time" checkpoints/llama.ckpt.best 0.8 40
+#                       prompt            checkpoint                  temp top_k
+```
+
+Prefer `.best` -- validation drifts up near the end, so the final checkpoint
+is not the best one. `src/llama_config.h` must still match the architecture the
+weights were trained with; nothing about it is stored in a checkpoint.
 
 ## Tests
 
 ```bash
-cmake --build build --target llm_tests
 ./build/llm_tests
 ```

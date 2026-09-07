@@ -3,8 +3,14 @@ build*/
 .cache/
 compile_commands.json
 .vscode
+
+# Corpora and tokenizers are built by scripts/ -- see DATALOADER.md.
 data/TinyStories/*
 data/TinyShakespeare/*
+
+# Training outputs.
+checkpoints/
 *.ckpt
+logs/
+
 __pycache__
-checkpoints
