@@ -6,6 +6,12 @@ RMSNorm pre-norm blocks, RoPE, SwiGLU MLPs, grouped-query attention, no biases.
 Built on [nn library](../nn%20library), a sibling checkout. Override its path
 with `-DNN_LIBRARY_DIR=/path/to/nn-library`.
 
+```bash
+Once upon a time, there was a little boy named Timmy. Timmy loved to play outside and explore the world around him. One day, he found a big rock in his backyard. It was very heavy and he couldn't lift it. He tried and tried, but it was too hard for him.
+Suddenly, Timmy's mom came outside and saw him struggling with the rock. "What's wrong, Timmy?" she asked. Timmy showed her the rock and said, "I can't lift it, Mommy." His mom smiled and said, "Let me help you." She lifted the rock and Timmy was very happy.
+But then, Timmy's little sister came outside and wanted to play with the rock too. Timmy didn't want to share the rock, so he said, "No, it's mine!" His sister started to cry and Timmy felt bad. He realized that he was being selfish and decided to share the rock with his sister. They both played together and had fun. The end
+```
+
 ## Build
 
 ```bash
