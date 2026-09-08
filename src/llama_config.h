@@ -23,9 +23,6 @@ struct LlamaTrainConfig {
   // Optimization.
   int batch_size = 256;
   int micro_batch_size = 32;
-  // 18700 steps x 65536 tokens/step = 1.23B tokens: 20 tokens per
-  // parameter (Chinchilla-optimal for 62M) and 2.5 epochs of the
-  // 481.9M-token corpus. ~9h at ~1.73 s/step.
   int64_t max_steps = 18700;
   int64_t warmup_steps = 200;
   float peak_lr = 3e-4f;

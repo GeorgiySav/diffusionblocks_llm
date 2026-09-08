@@ -8,7 +8,6 @@
 #include "LlamaAttention.h"
 #include "SwiGLU.h"
 
-// One Llama decoder layer
 class LlamaDecoderLayer : public nn::Module {
 public:
   LlamaDecoderLayer(int hidden_size, int intermediate_size, int num_attention_heads,

@@ -16,8 +16,6 @@
 
 namespace llm::llama_generate {
 
-// Generates from a checkpoint using cfg's architecture, which must match what
-// the checkpoint was trained with: the weights carry no metadata to check it.
 inline void run_generate(const LlamaTrainConfig& cfg, const std::string& checkpoint_path,
                          const std::string& prompt, const std::string& encoding,
                          int max_new_tokens, float temperature, int top_k) {
@@ -51,7 +49,7 @@ inline void run_generate(const LlamaTrainConfig& cfg, const std::string& checkpo
   std::printf("\n--- Generated text ---\n%s\n", tokenizer.decode(out_ids).c_str());
 }
 
-// CLI: generate_llama [prompt] [checkpoint] [temperature] [top_k] [tokenizer.json]
+// generate_llama [prompt] [checkpoint] [temperature] [top_k] [tokenizer.json]
 inline void run_generate_cli(int argc, char** argv) {
   LlamaTrainConfig cfg;
 
