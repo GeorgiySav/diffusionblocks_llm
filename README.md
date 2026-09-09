@@ -15,24 +15,18 @@ with `-DNN_LIBRARY_DIR=/path/to/nn-library`.
 | Vocabulary | 4096, byte-level BPE trained on the corpus |
 | Best val loss | **1.3409** (perplexity 3.82) |
 
-Sampled at `temperature 0.8`, `top_k 40`, from the prompt `Once upon a time`:
+Sampled at `temperature 0.8`, `top_k 40`, from the prompt `There was a boy`:
 
 ```
-Once upon a time, there was a little boy named Timmy. Timmy loved to play
-outside and explore the world around him. One day, he found a big rock in his
-backyard. It was very heavy and he couldn't lift it. He tried and tried, but it
-was too hard for him.
-
-Suddenly, Timmy's mom came outside and saw him struggling with the rock.
-"What's wrong, Timmy?" she asked. Timmy showed her the rock and said, "I can't
-lift it, Mommy." His mom smiled and said, "Let me help you." She lifted the
-rock and Timmy was very happy.
-
-But then, Timmy's little sister came outside and wanted to play with the rock
-too. Timmy didn't want to share the rock, so he said, "No, it's mine!" His
-sister started to cry and Timmy felt bad. He realized that he was being selfish
-and decided to share the rock with his sister. They both played together and
-had fun. The end
+There was a boy named Jack. He was a good boy. Every day, he went to school with his pencil in hand.
+It was a regular pencil, but it made him think about life.
+One day, Jack decided to design something special. He wanted to design his favourite toy. He used
+blue and green and yellow and green. He worked very hard at designing his toy. 
+When he was finished, Jack was very proud of his creation. He ran to show his mum. She was so
+impressed with what he had made. She hugged him and said, "Your pencil is a great design! You are a
+very talented boy!" 
+Jack was so happy. He was so proud and thanked his mum for making him design something so special.
+From then on, he was always sure to take good care of his pencil.
 ```
 
 ## Build
